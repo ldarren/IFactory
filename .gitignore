@@ -6,9 +6,8 @@ lib-cov
 *.out
 *.pid
 *.gz
+~*.sw*
 
 pids
 logs
 results
-
-npm-debug.log
