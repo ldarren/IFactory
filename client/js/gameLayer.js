@@ -1,36 +1,53 @@
 pico.def('gameLayer', function(){
     this.use('piCanvas');
     this.use('piAtlas');
-    this.use('piGameTileMatch');
+    this.use('piHexGameMap');
 
     var
     me = this,
+    worldMap,
+    gameMap,
+    lastX, lastY,
     terrainUpdated = true,
     layerTerrain, atlasTerrain,
     onUpdate = function(layers, elapsed){
         if (!terrainUpdated) return;
 
+        terrainUpdated = false;
+    },
+    onMapUpdate = function(map){
         var
         ctx = layerTerrain.getContext(),
         c = me.piCanvas,
-        cw = c.getStageWidth(),
-        ch = c.getStageHeight(),
-        lx = Math.ceil((cw+18) / 54),
-        ly = Math.ceil(ch / 72),
-        x, y, r, ox, oy;
+        r,isGrass;
 
-        for(x=0; x<lx; x++){
-            oy = x % 2 ? -36 : 0;
-            ox = Math.floor((x * 54)-18);
-            for (y=0; y<ly; y++){
-                r = Math.floor(Math.random()*8);
-                atlasTerrain.drawImage(ctx, 'g'+r, ox, Math.floor((y * 72)+oy));
+        map.eachViewTile(function(tile){
+            isGrass = undefined !== tile.data;
+            r = Math.floor(Math.random()*(isGrass ? 8 : 7));
+            atlasTerrain.drawImage(ctx, (isGrass ? 'g' : 'r')+r, tile.x, tile.y);
+        });
+    },
+    download = function(screen, url, cb){
+        pico.ajax('get', url, null, {}, function(err, data){
+            try{
+                var json = JSON.parse(data);
+            }catch(exp){
+                return console.error(exp);
             }
-            if (oy) atlasTerrain.drawImage(ctx, 'g'+r, ox, Math.floor((ly * 72)+oy));
-        }
+            return new HexGameMap(screen, json.tile, json.col, json.row);
+        });
+    };
 
-
-        terrainUpdated = false;
+    this.onFingerUp = function(evt, x, y){
+    };
+    this.onFingerDown = function(evt, x, y){
+        lastX = x;
+        lastY = y;
+    };
+    this.onFingerMove = function(evt, x, y){
+        worldMap.pan(x-lastX, y-lastY);
+        lastX = x;
+        lastY = y;
     };
 
     this.init = function(cb){
@@ -39,7 +56,7 @@ pico.def('gameLayer', function(){
         var
         a = me.piAtlas,
         c = me.piCanvas,
-        g = me.piGameTileMatch;
+        g = me.piHexGameMap;
 
         a.create('../res/img/terrain.png', '../res/cfg/terrain.json', function(err, terrain){
             if (err) return cb(err);
@@ -47,12 +64,17 @@ pico.def('gameLayer', function(){
             atlasTerrain = terrain;
 
             var
-            cx = Math.floor(c.getStageWidth()-c.getCanvasWidth()),
-            cy = Math.floor(c.getStageHeight()-c.getCanvasHeight());
+            sw = c.getStageWidth(),
+            sh = c.getStageHeight(),
+            cx = Math.floor(sw-c.getCanvasWidth()),
+            cy = Math.floor(sh-c.getCanvasHeight());
 
             layerTerrain = c.addLayer(me.moduleName);
             layerTerrain.setPanLimits(cx, 0, cy, 0);
             c.slot(c.UPDATE, onUpdate);
+
+            g.slot(g.UPDATE, onMapUpdate);
+            worldMap = g.create('worldMap', {width:sw, height:sh}, {width:G_CLIENT.TILE_WIDTH, height:G_CLIENT.TILE_HEIGHT}, 5, 6);
 
             return cb();
         });
