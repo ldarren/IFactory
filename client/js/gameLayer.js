@@ -74,7 +74,20 @@ pico.def('gameLayer', function(){
             c.slot(c.UPDATE, onUpdate);
 
             g.slot(g.UPDATE, onMapUpdate);
-            worldMap = g.create('worldMap', {width:sw, height:sh}, {width:G_CLIENT.TILE_WIDTH, height:G_CLIENT.TILE_HEIGHT}, 5, 6);
+            worldMap = g.create(
+                'worldMap',
+                {
+                    width:sw,
+                    height:sh
+                },
+                {
+                    base:G_CLIENT.TILE_BASE,
+                    side:G_CLIENT.TILE_SIDE,
+                    height:G_CLIENT.TILE_HEIGHT
+                },
+                5,
+                6
+            );
 
             return cb();
         });
