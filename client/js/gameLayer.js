@@ -2,15 +2,18 @@ pico.def('gameLayer', function(){
     this.use('piCanvas');
     this.use('piAtlas');
     this.use('piHexGameMap');
+    this.use('piParticleSystem');
 
     var
     me = this,
     worldMap,
     gameMap,
+    emitter,
     lastX, lastY,
     terrainUpdated = true,
     layerTerrain, atlasTerrain,
     onUpdate = function(layers, elapsed){
+        me.piParticleSystem.update(elapsed);
         if (!terrainUpdated) return;
 
         terrainUpdated = false;
@@ -58,7 +61,7 @@ pico.def('gameLayer', function(){
         c = me.piCanvas,
         g = me.piHexGameMap;
 
-        a.create('../res/img/terrain.png', '../res/cfg/terrain.json', function(err, terrain){
+        a.create('http://107.20.154.29:5000/res/img/terrain.png', 'http://107.20.154.29:5000/res/cfg/terrain.json', function(err, terrain){
             if (err) return cb(err);
 
             atlasTerrain = terrain;
@@ -88,6 +91,18 @@ pico.def('gameLayer', function(){
                 5,
                 6
             );
+
+            emitter = me.piParticleSystem.createEmitter({
+                layer: layerTerrain,
+                origin: [100, 100, 0, 0], 
+                offset: 0
+            });
+            emitter.start({
+                rate: 100,
+                angle: [0, 2 * Math.PI],
+                speed: [10, 15],
+                life: [4, 1]
+            });
 
             return cb();
         });
